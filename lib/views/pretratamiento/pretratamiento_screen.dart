@@ -9,9 +9,20 @@ class PretratamientoScreen extends StatelessWidget {
     this.datosAnalisis,
   });
 
+  // Método para validar datos recibidos
+  bool get _hasValidData {
+    return datosAnalisis != null && datosAnalisis!.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _buildContent();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pretratamiento'),
+        backgroundColor: AppColors.primary,
+      ),
+      body: _buildContent(),
+    );
   }
 
   Widget _buildContent() {
@@ -26,19 +37,14 @@ class PretratamientoScreen extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Header informativo
-              _buildHeader(isMobile, isTablet),
-              
-              const SizedBox(height: AppSpacing.large),
-              
-              // Grid de datos recibidos
-              if (datosAnalisis != null) _buildDatosRecibidos(isMobile, isTablet),
+              // Mostrar datos o mensaje de no datos
+              if (_hasValidData) 
+                _buildDatosRecibidos(isMobile, isTablet)
+              else
+                _buildNoDataMessage(isMobile),
               
               // Contenido principal del módulo
               _buildMainContent(isMobile, isTablet),
-              
-              // Sección de próximas características
-              _buildProximamenteSection(isMobile, isTablet),
             ],
           ),
         );
@@ -46,60 +52,34 @@ class PretratamientoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(bool isMobile, bool isTablet) {
+  Widget _buildNoDataMessage(bool isMobile) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.large),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Colors.white, AppColors.backgroundVariant],
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.large),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.medium),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryLight.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.settings_input_component,
-                  size: isMobile ? 40 : 48,
-                  color: AppColors.secondaryLight,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.large),
+        child: Column(
+          children: [
+            Icon(
+              Icons.warning_amber,
+              size: 48,
+              color: AppColors.warning,
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              'No hay datos de análisis',
+              style: AppTextStyles.heading3.copyWith(
+                color: AppColors.warning,
               ),
-              const SizedBox(width: AppSpacing.medium),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Pretratamiento",
-                      style: isMobile 
-                          ? AppTextStyles.heading2.copyWith(color: AppColors.secondaryLight)
-                          : AppTextStyles.heading1.copyWith(color: AppColors.secondaryLight),
-                    ),
-                    const SizedBox(height: AppSpacing.small),
-                    Text(
-                      "Módulo de condicionamiento inicial y preprocesamiento",
-                      style: AppTextStyles.body.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
+            ),
+            const SizedBox(height: AppSpacing.small),
+            Text(
+              'Realice un análisis primero para ver los datos aquí',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -201,7 +181,6 @@ class PretratamientoScreen extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppRadius.large),
       ),
-      margin: const EdgeInsets.only(bottom: AppSpacing.large),
       child: Padding(
         padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
         child: Column(
@@ -217,11 +196,6 @@ class PretratamientoScreen extends StatelessWidget {
             
             // Indicadores de estado
             _buildEstadoIndicators(isMobile, isTablet),
-            
-            const SizedBox(height: AppSpacing.large),
-            
-            // Recomendaciones basadas en datos
-            _buildRecomendaciones(),
           ],
         ),
       ),
@@ -259,112 +233,6 @@ class PretratamientoScreen extends StatelessWidget {
           Icons.bolt,
         ),
       ],
-    );
-  }
-
-  Widget _buildRecomendaciones() {
-    final tds = _getDoubleValue(datosAnalisis?['tdsPpm']);
-    final ph = _getDoubleValue(datosAnalisis?['ph']);
-    final conductividad = _getDoubleValue(datosAnalisis?['kappa25']);
-
-    String recomendacion = _generarRecomendacion(tds, ph, conductividad);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.medium),
-      decoration: BoxDecoration(
-        color: AppColors.backgroundVariant,
-        borderRadius: BorderRadius.circular(AppRadius.medium),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.lightbulb, color: AppColors.warning, size: 20),
-              const SizedBox(width: AppSpacing.small),
-              Text(
-                'Recomendaciones Iniciales',
-                style: AppTextStyles.heading3.copyWith(
-                  color: AppColors.warning,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.small),
-          Text(
-            recomendacion,
-            style: AppTextStyles.body.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProximamenteSection(bool isMobile, bool isTablet) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.large),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.secondaryLight.withOpacity(0.1), AppColors.accent.withOpacity(0.1)],
-          ),
-          borderRadius: BorderRadius.circular(AppRadius.large),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? AppSpacing.medium : AppSpacing.large),
-          child: Column(
-            children: [
-              Icon(
-                Icons.construction,
-                size: isMobile ? 48 : 64,
-                color: AppColors.secondaryLight,
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              Text(
-                "Módulo en Desarrollo",
-                style: isMobile 
-                    ? AppTextStyles.heading2.copyWith(color: AppColors.secondaryLight)
-                    : AppTextStyles.heading1.copyWith(color: AppColors.secondaryLight),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.small),
-              Text(
-                "Próximamente: Funcionalidades completas de pretratamiento",
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.medium),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.large,
-                  vertical: AppSpacing.small,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryLight.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(AppRadius.round),
-                ),
-                child: Text(
-                  "Próximamente",
-                  style: AppTextStyles.caption.copyWith(
-                    color: AppColors.secondaryLight,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -528,36 +396,5 @@ class PretratamientoScreen extends StatelessWidget {
       default:
         return AppColors.textSecondary;
     }
-  }
-
-  String _generarRecomendacion(double tds, double ph, double conductividad) {
-    List<String> recomendaciones = [];
-
-    // Recomendaciones basadas en TDS
-    if (tds > 500) {
-      recomendaciones.add('TDS elevado: considerar filtración por ósmosis inversa');
-    } else if (tds > 200) {
-      recomendaciones.add('TDS moderado: posible filtración con carbón activado');
-    } else {
-      recomendaciones.add('TDS dentro de rangos aceptables');
-    }
-
-    // Recomendaciones basadas en pH
-    if (ph < 6.0) {
-      recomendaciones.add('pH bajo: considerar corrección con carbonato de sodio');
-    } else if (ph > 8.0) {
-      recomendaciones.add('pH alto: considerar corrección con ácido cítrico');
-    } else {
-      recomendaciones.add('pH dentro de rango óptimo');
-    }
-
-    // Recomendaciones basadas en conductividad
-    if (conductividad > 500) {
-      recomendaciones.add('Conductividad alta: posible alto contenido de minerales');
-    } else if (conductividad < 100) {
-      recomendaciones.add('Conductividad baja: agua con bajo contenido mineral');
-    }
-
-    return recomendaciones.join('. ');
   }
 }
