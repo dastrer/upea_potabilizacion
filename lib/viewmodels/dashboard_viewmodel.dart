@@ -5,11 +5,13 @@ class DashboardViewModel extends ChangeNotifier {
   Map<String, dynamic>? _datosPretratamiento;
   Map<String, dynamic>? _datosTratamientoCalculado;
   Map<String, dynamic>? _datosTratamientoIniciado;
+  Map<String, dynamic>? _datosPostratamiento; // NUEVA PROPIEDAD
 
   int get selectedIndex => _selectedIndex;
   Map<String, dynamic>? get datosPretratamiento => _datosPretratamiento;
   Map<String, dynamic>? get datosTratamientoCalculado => _datosTratamientoCalculado;
   Map<String, dynamic>? get datosTratamientoIniciado => _datosTratamientoIniciado;
+  Map<String, dynamic>? get datosPostratamiento => _datosPostratamiento; // NUEVO GETTER
 
   void changeIndex(int index) {
     _selectedIndex = index;
@@ -36,7 +38,21 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ========== NUEVOS MÉTODOS PARA TRATAMIENTO ==========
+  // ========== NUEVOS MÉTODOS PARA POSTRATAMIENTO ==========
+
+  // Guardar datos para postratamiento (tiempo y voltaje)
+  void setDatosPostratamiento(Map<String, dynamic> datos) {
+    _datosPostratamiento = datos;
+    notifyListeners();
+  }
+
+  // Limpiar datos de postratamiento
+  void limpiarDatosPostratamiento() {
+    _datosPostratamiento = null;
+    notifyListeners();
+  }
+
+  // ========== MÉTODOS PARA TRATAMIENTO ==========
 
   // Guardar datos de tratamiento calculados (para persistencia entre navegaciones)
   void setDatosTratamientoCalculado(Map<String, dynamic> datos) {
@@ -71,11 +87,11 @@ class DashboardViewModel extends ChangeNotifier {
 
   // ========== MÉTODOS PARA NAVEGACIÓN RÁPIDA ==========
   void goToAnalisis() {
-    changeIndex(0);
+    changeIndex(0); // Análisis - Índice 0
   }
 
   void goToPretratamiento([Map<String, dynamic>? datos]) {
-    _selectedIndex = 1;
+    _selectedIndex = 1; // Pretratamiento - Índice 1
     if (datos != null) {
       _datosPretratamiento = datos;
     }
@@ -83,28 +99,28 @@ class DashboardViewModel extends ChangeNotifier {
   }
 
   void goToTratamiento() {
-    _selectedIndex = 2; // Asumiendo que Tratamiento es índice 2
+    _selectedIndex = 2; // Tratamiento - Índice 2
     notifyListeners();
   }
 
   void goToPostratamiento() {
-    changeIndex(3); // Ajustado porque Tratamiento ahora es índice 2
+    changeIndex(2); // Postratamiento - Índice 2
   }
 
   void goToInicio() {
-    changeIndex(4); // Ajustado por el nuevo índice de Tratamiento
+    changeIndex(3); // Inicio - Índice 3
   }
 
   void goToResultados() {
-    changeIndex(5); // Ajustado por el nuevo índice de Tratamiento
+    changeIndex(4); // Resultados - Índice 4
   }
 
   void goToFundamentos() {
-    changeIndex(6); // Ajustado por el nuevo índice de Tratamiento
+    changeIndex(5); // Fundamentos - Índice 5
   }
 
   void goToSoporte() {
-    changeIndex(7); // Ajustado por el nuevo índice de Tratamiento
+    changeIndex(6); // Soporte - Índice 6
   }
 
   // ========== MÉTODOS DE VERIFICACIÓN ==========
@@ -117,6 +133,9 @@ class DashboardViewModel extends ChangeNotifier {
 
   // Método para verificar si hay datos de tratamiento iniciado
   bool get tieneDatosTratamientoIniciado => _datosTratamientoIniciado != null;
+
+  // Método para verificar si hay datos de postratamiento
+  bool get tieneDatosPostratamiento => _datosPostratamiento != null;
 
   // ========== MÉTODOS PARA OBTENER DATOS ESPECÍFICOS ==========
 
@@ -133,6 +152,11 @@ class DashboardViewModel extends ChangeNotifier {
   // Método para obtener un dato específico de tratamiento iniciado
   dynamic getDatoTratamientoIniciado(String clave) {
     return _datosTratamientoIniciado?[clave];
+  }
+
+  // Método para obtener un dato específico de postratamiento
+  dynamic getDatoPostratamiento(String clave) {
+    return _datosPostratamiento?[clave];
   }
 
   // ========== MÉTODOS PARA ACTUALIZAR DATOS ==========
@@ -152,6 +176,12 @@ class DashboardViewModel extends ChangeNotifier {
   // Método para actualizar datos de tratamiento iniciado
   void actualizarDatosTratamientoIniciado(Map<String, dynamic> nuevosDatos) {
     _datosTratamientoIniciado = {...?_datosTratamientoIniciado, ...nuevosDatos};
+    notifyListeners();
+  }
+
+  // Método para actualizar datos de postratamiento
+  void actualizarDatosPostratamiento(Map<String, dynamic> nuevosDatos) {
+    _datosPostratamiento = {...?_datosPostratamiento, ...nuevosDatos};
     notifyListeners();
   }
 }

@@ -784,38 +784,36 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
   }
 
   void _iniciarTratamiento(BuildContext context) {
-    final dashboardVM = Provider.of<DashboardViewModel>(context, listen: false);
-    
-    // Preparar datos para el módulo de tratamiento
-    final int horas = (_tiempoTratamientoSegundos / 3600).floor();
-    final int minutos = ((_tiempoTratamientoSegundos % 3600) / 60).floor();
-    final int segundos = (_tiempoTratamientoSegundos % 60).round();
-    
-    final datosTratamiento = {
-      'tiempoHoras': horas,
-      'tiempoMinutos': minutos,
-      'tiempoSegundos': segundos,
-      'tiempoTotalSegundos': _tiempoTratamientoSegundos,
-      'corrienteSimulada': _corrienteSimulada,
-      'voltajeDiseño': double.tryParse(_voltajeController.text) ?? 0.0,
-      'volumenAgua': double.tryParse(_volumenController.text) ?? 0.0,
-      'tdsInicial': _getDoubleValue(widget.datosAnalisis?['tdsPpm']),
-      'fechaInicio': DateTime.now(),
-    };
-    
-    dashboardVM.setDatosTratamientoIniciado(datosTratamiento);
-    
-    // Navegar al módulo de tratamiento
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Iniciando tratamiento electroquímico...', style: AppTextStyles.body),
-        backgroundColor: AppColors.primary,
-      ),
-    );
-    
-    // Navegar al módulo de tratamiento
-    dashboardVM.goToTratamiento();
-  }
+  final dashboardVM = Provider.of<DashboardViewModel>(context, listen: false);
+  
+  // Preparar datos específicos para postratamiento (solo tiempo y voltaje)
+  final int horas = (_tiempoTratamientoSegundos / 3600).floor();
+  final int minutos = ((_tiempoTratamientoSegundos % 3600) / 60).floor();
+  final int segundos = (_tiempoTratamientoSegundos % 60).round();
+  final double voltaje = double.tryParse(_voltajeController.text) ?? 0.0;
+
+  final datosPostratamiento = {
+    'tiempoHoras': horas,
+    'tiempoMinutos': minutos,
+    'tiempoSegundos': segundos,
+    'tiempoTotalSegundos': _tiempoTratamientoSegundos,
+    'voltajeTratamiento': voltaje,
+    'fechaInicioTratamiento': DateTime.now(),
+  };
+
+  // Guardar en ViewModel usando el nuevo método para postratamiento
+  dashboardVM.setDatosPostratamiento(datosPostratamiento);
+  
+  // Navegar al módulo de postratamiento
+  dashboardVM.goToPostratamiento();
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Iniciando tratamiento electroquímico...', style: AppTextStyles.body),
+      backgroundColor: AppColors.primary,
+    ),
+  );
+}
 
   String _formatearTiempoCompleto(double segundosTotales) {
     int horas = (segundosTotales / 3600).floor();
