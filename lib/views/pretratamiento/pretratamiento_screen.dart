@@ -36,8 +36,8 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
   void initState() {
     super.initState();
     // Establecer valores por defecto
-    _voltajeController.text = '12.0';
-    _volumenController.text = '5.0';
+    _voltajeController.text = '';
+    _volumenController.text = '';
     _cargarCalculosExistentes();
   }
 
@@ -251,8 +251,9 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
     final double ph = _getDoubleValue(widget.datosAnalisis?['ph']);
     
     final bool phOptimo = ph >= 6.0 && ph <= 8.5;
-    final bool tdsCumple = tds < 1000;
-    final String nivelContaminacion = _evaluarNivelContaminacion(tds);
+    final String nivelTDS = _evaluarNivelTDS(tds);
+    final Color colorTDS = _getColorNivelTDS(tds);
+    final String recomendacionTDS = _getRecomendacionTDS(tds);
     
     return Card(
       elevation: 2,
@@ -302,8 +303,8 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
                 _buildIndicadorOMS(
                   'TDS Total',
                   '${tds.toStringAsFixed(2)} ppm',
-                  tdsCumple ? 'CUMPLE OMS' : 'EXCEDE LÍMITE',
-                  tdsCumple ? AppColors.success : AppColors.error,
+                  nivelTDS,
+                  colorTDS,
                   Icons.water_drop,
                 ),
               ],
@@ -311,7 +312,70 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
             
             const SizedBox(height: AppSpacing.medium),
             
-            // Información detallada
+            // Información detallada de TDS según OMS
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.medium),
+              decoration: BoxDecoration(
+                color: AppColors.backgroundVariant,
+                borderRadius: BorderRadius.circular(AppRadius.medium),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Evaluación OMS - Sólidos Disueltos Totales (TDS):',
+                    style: AppTextStyles.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.small),
+                  
+                  // Escala de calidad TDS
+                  _buildItemEscalaTDS('Excelente', '<300 ppm', tds < 300, AppColors.success),
+                  _buildItemEscalaTDS('Bueno', '300-600 ppm', tds >= 300 && tds <= 600, AppColors.info),
+                  _buildItemEscalaTDS('Aceptable/Regular', '600-900 ppm', tds > 600 && tds <= 900, AppColors.warning),
+                  _buildItemEscalaTDS('Inferior', '>900 ppm', tds > 900, AppColors.error),
+                  _buildItemEscalaTDS('Demasiado Bajo', '<100 ppm', tds < 100, AppColors.accent),
+                  
+                  const SizedBox(height: AppSpacing.small),
+                  
+                  // Recomendación específica
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.small),
+                    decoration: BoxDecoration(
+                      color: colorTDS.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.small),
+                      border: Border.all(color: colorTDS.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _getIconRecomendacionTDS(tds),
+                          color: colorTDS,
+                          size: 16,
+                        ),
+                        const SizedBox(width: AppSpacing.small),
+                        Expanded(
+                          child: Text(
+                            recomendacionTDS,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: colorTDS,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: AppSpacing.medium),
+            
+            // Información adicional sobre pH
             Container(
               padding: const EdgeInsets.all(AppSpacing.medium),
               decoration: BoxDecoration(
@@ -331,21 +395,15 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
                   ),
                   const SizedBox(height: AppSpacing.small),
                   Text(
-                    '• pH ${phOptimo ? 'dentro del rango óptimo (6.0-8.5)' : 'fuera del rango recomendado'}',
+                    '• pH ${phOptimo ? 'dentro del rango óptimo para EC (6.0-8.5)' : 'fuera del rango recomendado para EC'}',
                     style: AppTextStyles.bodySmall.copyWith(
                       color: phOptimo ? AppColors.success : AppColors.error,
                     ),
                   ),
                   Text(
-                    '• TDS ${tdsCumple ? 'cumple con estándares OMS (<1000 ppm)' : 'excede el límite OMS de 1000 ppm'}',
+                    '• Nivel TDS: $nivelTDS (${tds.toStringAsFixed(2)} ppm)',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: tdsCumple ? AppColors.success : AppColors.error,
-                    ),
-                  ),
-                  Text(
-                    '• Nivel de contaminación: $nivelContaminacion',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.info,
+                      color: colorTDS,
                     ),
                   ),
                 ],
@@ -353,6 +411,79 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Métodos auxiliares para el análisis TDS
+  String _evaluarNivelTDS(double tds) {
+    if (tds < 100) return 'MUY BAJO';
+    if (tds < 300) return 'EXCELENTE';
+    if (tds <= 600) return 'BUENO';
+    if (tds <= 900) return 'ACEPTABLE';
+    return 'INFERIOR';
+  }
+
+  Color _getColorNivelTDS(double tds) {
+    if (tds < 100) return AppColors.accent;
+    if (tds < 300) return AppColors.success;
+    if (tds <= 600) return AppColors.info;
+    if (tds <= 900) return AppColors.warning;
+    return AppColors.error;
+  }
+
+  String _getRecomendacionTDS(double tds) {
+    if (tds < 100) {
+      return 'Agua demasiado baja en minerales. Puede ser agresiva para tuberías.';
+    } else if (tds < 300) {
+      return 'Calidad excelente. Agua ideal para consumo.';
+    } else if (tds <= 600) {
+      return 'Calidad buena. Agua apropiada para consumo humano.';
+    } else if (tds <= 900) {
+      return 'Calidad aceptable. Puede contener minerales en concentración regular.';
+    } else {
+      return 'Calidad inferior. Puede contener contaminantes. Se recomienda tratamiento.';
+    }
+  }
+
+  IconData _getIconRecomendacionTDS(double tds) {
+    if (tds < 100) return Icons.warning;
+    if (tds < 300) return Icons.verified;
+    if (tds <= 600) return Icons.check_circle;
+    if (tds <= 900) return Icons.info;
+    return Icons.error;
+  }
+
+  Widget _buildItemEscalaTDS(String nivel, String rango, bool esActual, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: esActual ? color : AppColors.textDisabled,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$nivel: $rango',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: esActual ? color : AppColors.textSecondary,
+                fontWeight: esActual ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ),
+          if (esActual)
+            Icon(
+              Icons.arrow_left,
+              color: color,
+              size: 16,
+            ),
+        ],
       ),
     );
   }
@@ -721,67 +852,85 @@ class _PretratamientoScreenState extends State<PretratamientoScreen> {
 
   // ========== MÉTODOS DE LÓGICA ==========
   void _calcularTratamiento(BuildContext context) {
-    // 1. Obtención y Conversión de Inputs
-    final double voltaje = double.tryParse(_voltajeController.text) ?? 0.0;
-    final double volumen = double.tryParse(_volumenController.text) ?? 0.0;
-    final double tds = _getDoubleValue(widget.datosAnalisis?['tdsPpm']) ?? 0.0;
-    // R: Convertir de kΩ a Ω (5 kΩ = 5000 Ω)
-    final double resistencia = _getDoubleValue(widget.datosAnalisis?['resistencia']) * 1000; 
+  // --- CONSTANTES DEL PROCESO Y FÍSICA ---
+  const double F = 96485.0;      // Constante de Faraday (C/mol)
+  const double n = 3.0;          // Electrones por mol de Al (Al³⁺)
+  const double M = 0.02698;      // Masa Molar del Aluminio (kg/mol)
+  const double C_contaminante_kg_L = 0.0008; // Concentración de contaminante (0.8 g/L en kg/L)
+  const double FA_Aluminio = 0.05; // Factor de Acoplamiento (0.05 kg Al / kg Contaminante)
 
-    if (voltaje <= 0 || volumen <= 0 || resistencia <= 0 || tds <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Ingrese valores válidos para todos los parámetros de diseño y verifique el Análisis.', style: AppTextStyles.body),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
+  // 1. Obtención y Conversión de Inputs
+  final double voltaje = double.tryParse(_voltajeController.text) ?? 0.0;
+  final double volumen = double.tryParse(_volumenController.text) ?? 0.0;
+  
+  // R: Convertir de kΩ a Ω (EJEMPLO: 0.055 kΩ -> 55 Ω)
+  final double resistencia = _getDoubleValue(widget.datosAnalisis?['resistencia']) * 1000; 
 
-    // Paso 4 (Ecuación 5): I_simulada = V_diseño / R
-    _corrienteSimulada = voltaje / resistencia;
+  // TDS se obtiene, pero no se usa en el cálculo directo de 'm' aquí, sino la C_contaminante.
+  final double tds = _getDoubleValue(widget.datosAnalisis?['tdsPpm']) ?? 0.0; 
 
-    // Paso 5 (Ecuación 6): m_contaminante (en kg) = TDS_ppm (mg/L) × V_agua (L) × 10⁻⁶ (kg/mg)
-    _masaContaminante = tds * volumen * 0.000001; // Resultado en kg
-
-    // Paso 6 (Ecuación 7 - Ley de Faraday): Q = (m_contaminante × F × n) / M
-    const double F = 96485.0; // Constante de Faraday (C/mol)
-    const double n = 3.0;     // Electrones por mol (Al³⁺)
-    // CRÍTICO: Masa molar del Aluminio (kg/mol) para ser compatible con m_contaminante (kg)
-    const double M = 0.02698; // 26.98 g/mol convertido a kg/mol
-    
-    _cargaRequerida = (_masaContaminante * F * n) / M;
-
-    // Paso 7 (Ecuación 8): t_segundos = Q / I_simulada
-    _tiempoTratamientoSegundos = _cargaRequerida / _corrienteSimulada;
-
-    // GUARDAR EN VIEWMODEL PARA PERSISTENCIA
-    final dashboardVM = Provider.of<DashboardViewModel>(context, listen: false);
-    final datosCalculados = {
-      'corrienteSimulada': _corrienteSimulada,
-      'masaContaminante': _masaContaminante,
-      'cargaRequerida': _cargaRequerida,
-      'tiempoTratamientoSegundos': _tiempoTratamientoSegundos,
-      'voltajeDiseño': voltaje,
-      'volumenAgua': volumen,
-      'tdsInicial': tds,
-      'resistencia': resistencia,
-      'fechaCalculo': DateTime.now(),
-    };
-    
-    dashboardVM.setDatosTratamientoCalculado(datosCalculados);
-
-    setState(() {
-      _calculosRealizados = true;
-    });
-
+  if (voltaje <= 0 || volumen <= 0 || resistencia <= 0 || tds <= 0) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Cálculos completados exitosamente.', style: AppTextStyles.body),
-        backgroundColor: AppColors.success,
+        content: Text('Ingrese valores válidos para todos los parámetros de diseño y verifique el Análisis.', style: AppTextStyles.body),
+        backgroundColor: AppColors.error,
       ),
     );
+    return;
   }
+
+  // --- CÁLCULOS DEL TRATAMIENTO (Ecuaciones 5-8) ---
+
+  // Paso 1 (Ecuación 5): Corriente simulada (I)
+  // I = V / R. Resultado en Amperios (A)
+  _corrienteSimulada = voltaje / resistencia; 
+
+  // Paso 2 (Ecuación 6): Masa Total de Contaminante (m_contaminante)
+  // m_total = C_contaminante (kg/L) * V_agua (L). Resultado en kilogramos (kg)
+  _masaContaminante = C_contaminante_kg_L * volumen; 
+
+  // Paso 3 (Ecuación 7 - Ley de Faraday): Carga requerida (Q)
+  
+  // 3a. Calcular la masa de Aluminio (m_Al) necesaria para remover el contaminante
+  // m_Al = m_contaminante (kg) * FA (kg Al / kg Contaminante). Resultado en kilogramos (kg)
+  final double masaAluminioRequerida = _masaContaminante * FA_Aluminio; 
+
+  // 3b. Aplicar Ley de Faraday para calcular Q
+  // Q = (m_Al * F * n) / M. Se usa m_Al en kg y M en kg/mol.
+  // Resultado en Coulombios (C)
+  _cargaRequerida = (masaAluminioRequerida * F * n) / M; 
+
+  // Paso 4 (Ecuación 8): Tiempo de Tratamiento (t)
+  // t = Q / I. Resultado en Segundos (s)
+  _tiempoTratamientoSegundos = _cargaRequerida / _corrienteSimulada;
+
+  // --- GUARDAR Y FINALIZAR ---
+  final dashboardVM = Provider.of<DashboardViewModel>(context, listen: false);
+  final datosCalculados = {
+    'corrienteSimulada': _corrienteSimulada,
+    'masaContaminante': _masaContaminante,
+    'cargaRequerida': _cargaRequerida,
+    'tiempoTratamientoSegundos': _tiempoTratamientoSegundos,
+    'voltajeDiseño': voltaje,
+    'volumenAgua': volumen,
+    'tdsInicial': tds,
+    'resistencia': resistencia,
+    'fechaCalculo': DateTime.now(),
+  };
+  
+  dashboardVM.setDatosTratamientoCalculado(datosCalculados);
+
+  setState(() {
+    _calculosRealizados = true;
+  });
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text('Cálculos completados exitosamente', style: AppTextStyles.body),
+      backgroundColor: AppColors.success,
+    ),
+  );
+}
 
   void _iniciarTratamiento(BuildContext context) {
   final dashboardVM = Provider.of<DashboardViewModel>(context, listen: false);

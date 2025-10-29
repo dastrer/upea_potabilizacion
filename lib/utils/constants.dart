@@ -224,11 +224,11 @@ class AppAssets {
 /// 🔑 STRINGS COMUNES
 /// ===========================
 class AppStrings {
-  static const appName = "Tratamiento de Agua";
+  static const appName = "SAEC";
   static const appTagline = "Plataforma Educativa";
   static const login = "Iniciar Sesión";
   static const logout = "Cerrar Sesión";
-  static const dashboard = "Tratamiento de Agua";
+  static const dashboard = "SAEC: Panel de Control";
   static const welcome = "Bienvenido/a";
 }
 

@@ -28,7 +28,7 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
   List<CameraDescription>? _cameras;
   
   // Parámetros de validación
-  final double _umbralClaridad = 180.0; // Valor experimental (0-255)
+  final double _umbralClaridad = 100.0; // Machine learning para analisis de agua
   double _brilloPostEC = 0.0;
 
   @override
@@ -51,6 +51,7 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
         _cameraController = CameraController(
           _cameras!.first,
           ResolutionPreset.medium,
+          enableAudio: false, // Deshabilitar audio para cámara
         );
         await _cameraController!.initialize();
         if (mounted) setState(() {});
@@ -119,7 +120,7 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
     );
   }
 
-  // FASE 2: Validación con Visión Artificial - CORREGIDO
+  // FASE 2: Validación con Visión Artificial - MODIFICADO: Flash activado
   void _iniciarValidacionClaridad() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -136,8 +137,17 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
     });
 
     try {
-      // Capturar imagen
+      // ACTIVAR FLASH antes de capturar
+      await _cameraController!.setFlashMode(FlashMode.torch);
+      
+      // Pequeña pausa para que el flash se active completamente
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Capturar imagen con flash activado
       final image = await _cameraController!.takePicture();
+      
+      // DESACTIVAR FLASH después de capturar
+      await _cameraController!.setFlashMode(FlashMode.off);
       
       // Cargar y procesar imagen
       final imageBytes = await image.readAsBytes();
@@ -148,6 +158,11 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
         _validarClaridad(_brilloPostEC);
       }
     } catch (e) {
+      // Asegurarse de desactivar el flash incluso si hay error
+      try {
+        await _cameraController!.setFlashMode(FlashMode.off);
+      } catch (_) {}
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('❌ Error al procesar imagen: $e'),
@@ -612,7 +627,7 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
                 ),
                 SizedBox(height: paddingValue),
                 _buildInstruccionItem('1. Alinee la cubeta con la cámara', Icons.camera_alt),
-                _buildInstruccionItem('2. Asegure buena iluminación', Icons.lightbulb),
+                _buildInstruccionItem('2. El flash se activará automáticamente', Icons.flash_on),
                 _buildInstruccionItem('3. Capture imagen del agua tratada', Icons.photo_camera),
                 SizedBox(height: paddingValue),
                 
@@ -1047,6 +1062,40 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
     );
   }
 
+  // NUEVO: Mensaje de "No hay datos de condiciones iniciales" - IDÉNTICO AL PRETRATAMIENTO
+  Widget _buildNoDataMessage(bool isMobile) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.large),
+        child: Column(
+          children: [
+            Icon(
+              Icons.warning_amber,
+              size: 48,
+              color: AppColors.warning,
+            ),
+            const SizedBox(height: AppSpacing.medium),
+            Text(
+              'No hay datos de condiciones iniciales',
+              style: AppTextStyles.heading3.copyWith(
+                color: AppColors.warning,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.small),
+            Text(
+              'Realice el analisis y los calculos de condiciones iniciales primero para ver los datos aquí',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildModuleScreen(BuildContext context, String title, IconData icon, Color color, String description) {
     final Size screenSize = MediaQuery.of(context).size;
     final double paddingValue = screenSize.width * 0.05;
@@ -1168,12 +1217,34 @@ class _PostratamientoScreenState extends State<PostratamientoScreen> {
       return _buildTratamientoActivo(context, datosPostratamiento);
     }
 
-    return _buildModuleScreen(
-      context,
-      "Postratamiento",
-      Icons.assignment_turned_in,
-      AppColors.accent,
-      "Módulo de resultados y reportes post-procesamiento",
+    // NUEVO: Mostrar mensaje de "No hay datos" en lugar de la pantalla de construcción
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Postratamiento'),
+        backgroundColor: AppColors.primary,
+      ),
+      body: _buildContent(context),
+    );
+  }
+
+  // NUEVO: Método para construir el contenido principal
+  Widget _buildContent(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isMobile = constraints.maxWidth < 600;
+        
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(
+            isMobile ? AppSpacing.screenPadding : AppSpacing.large,
+          ),
+          child: Column(
+            children: [
+              // Mostrar mensaje de no datos (igual que en pretratamiento)
+              _buildNoDataMessage(isMobile),
+            ],
+          ),
+        );
+      },
     );
   }
 }
